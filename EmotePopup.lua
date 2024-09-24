@@ -79,7 +79,7 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     if isTargetedAtPlayer then
         local glow = toast:CreateTexture(nil, "BACKGROUND", nil, -1)
         glow:SetPoint("CENTER", toast, "CENTER")
-        glow:SetSize(350 * addonTable.savedVariables.scale, 130 * addonTable.savedVariables.scale)
+        glow:SetSize(300 * addonTable.savedVariables.scale, 200 * addonTable.savedVariables.scale)
         glow:SetTexture("Interface\\GLUES\\MODELS\\UI_DRAENEI\\GenericGlow64")
         glow:SetBlendMode("ADD")
         glow:SetVertexColor(unpack(addonTable.savedVariables.glowColor))
