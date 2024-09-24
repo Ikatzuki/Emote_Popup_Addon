@@ -14,12 +14,24 @@ EmotePopupSavedVars = EmotePopupSavedVars or {
 -- Alias the saved variables for easy use
 addonTable.savedVariables = EmotePopupSavedVars
 
+-- Debugging function to ensure position values are valid
+local function ClampPosition(x, y)
+    local screenWidth, screenHeight = GetScreenWidth(), GetScreenHeight()
+    x = math.min(math.max(x, 0), screenWidth - 300)  -- Clamp within screen width minus the toast width
+    y = math.min(math.max(y, 0), screenHeight - 80)  -- Clamp within screen height minus the toast height
+    return x, y
+end
+
 -- Save position after dragging
 local function SavePosition(toast)
-    local x, y = toast:GetCenter()
-    local scale = toast:GetEffectiveScale()
-    addonTable.savedVariables.toastPosition.x = x * scale - GetScreenWidth() / 2
-    addonTable.savedVariables.toastPosition.y = y * scale - GetScreenHeight() / 2
+    local x = toast:GetLeft()
+    local y = toast:GetTop()
+
+    -- Debug print the values being saved
+    print("Saving position:", x, y)
+
+    -- Save clamped position
+    addonTable.savedVariables.toastPosition.x, addonTable.savedVariables.toastPosition.y = ClampPosition(x, y)
 end
 
 -- Function to create toast with optional drag functionality for positioning
@@ -27,20 +39,28 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     -- Default isMovable to false if not provided
     isMovable = isMovable or false
 
+    -- Get the clamped position to avoid off-screen placement
+    local xPos, yPos = ClampPosition(addonTable.savedVariables.toastPosition.x, addonTable.savedVariables.toastPosition.y)
+
+    -- Debug print to verify position before setting the toast
+    print("Setting toast position to:", xPos, yPos)
+
     -- Create the toast frame
     local toast = CreateFrame("Frame", nil, UIParent)
     addonTable.tempToast = toast
-    toast:SetPoint("CENTER", UIParent, "CENTER", addonTable.savedVariables.toastPosition.x, addonTable.savedVariables.toastPosition.y)
+    toast:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", xPos, yPos)
     toast:SetSize(300 * addonTable.savedVariables.scale, 80 * addonTable.savedVariables.scale)
-    
-    -- Set the frame to be movable if isMovable is true
+
+    -- Enable dragging functionality
     toast:SetMovable(isMovable)
     toast:EnableMouse(isMovable)
-
     if isMovable then
         toast:RegisterForDrag("LeftButton")
         toast:SetScript("OnDragStart", function() toast:StartMoving() end)
-        toast:SetScript("OnDragStop", function() toast:StopMovingOrSizing() SavePosition(toast) end)
+        toast:SetScript("OnDragStop", function()
+            toast:StopMovingOrSizing()
+            SavePosition(toast)  -- Call SavePosition to store the position
+        end)
     end
 
     -- Set up the toast content (background, text, glow)
@@ -55,7 +75,7 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     text:SetText(message)
     text:SetTextColor(1, 1, 1)
 
-    -- Glow effect if targeted at player
+    -- Glow effect if targeted
     if isTargetedAtPlayer then
         local glow = toast:CreateTexture(nil, "BACKGROUND", nil, -1)
         glow:SetPoint("CENTER", toast, "CENTER")
@@ -173,7 +193,6 @@ frame:RegisterEvent("CHAT_MSG_TEXT_EMOTE")
 local function OnEvent(self, event, ...)
     if event == "ADDON_LOADED" and ... == addonName then
         -- Set up saved variables here if needed
-        -- You may want to initialize things that rely on the addon being loaded
     elseif event == "PLAYER_LOGIN" then
         -- Now the Blizzard UI is fully loaded, and we can safely add the options panel
         CreateOptionsPanel()
@@ -190,8 +209,8 @@ local function OnEvent(self, event, ...)
             local myName = UnitName("player")
             print("myName is set to:", myName)
 
-            -- Check if the emote is directed at you (look for "you" or the player's name in the emote text)
-            local isTargetedAtPlayer = text:find(myName) or text:find("you")
+            -- Check if the emote is directed at you (look for "you" in the emote text)
+            local isTargetedAtPlayer = text:find("you") ~= nil
             print("test2 - isTargetedAtPlayer:", isTargetedAtPlayer)
 
             -- Show the toast notification for the emote
@@ -199,5 +218,6 @@ local function OnEvent(self, event, ...)
         end
     end
 end
+
 
 frame:SetScript("OnEvent", OnEvent)
