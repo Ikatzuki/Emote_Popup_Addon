@@ -1,0 +1,7 @@
+## Interface: 100007
+## Title: EmotePopup
+## Notes: Displays player emotes in a popup.
+## Author: Ikatzuki
+## SavedVariables: EmotePopupSavedVars
+
+EmotePopup.lua
