@@ -104,7 +104,10 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
         glow:SetSize(350 * addonTable.savedVariables.scale, 130 * addonTable.savedVariables.scale)
         glow:SetTexture("Interface\\GLUES\\MODELS\\UI_DRAENEI\\GenericGlow64")
         glow:SetBlendMode("ADD")
-        glow:SetVertexColor(unpack(addonTable.savedVariables.glowColor))
+
+        -- Use the saved glow color
+        local r, g, b, a = unpack(addonTable.savedVariables.glowColor)
+        glow:SetVertexColor(r, g, b, a)
     end
 
     -- Insert the new toast at the top of the active toasts table
@@ -141,6 +144,58 @@ end
     return math.floor(num * mult + 0.5) / mult
 end
 
+-- Function to display the color picker using older, more compatible methods
+local function ShowColorPicker(r, g, b, a, changedCallback)
+    -- Debug print to verify color values being passed
+    print("Opening Color Picker with values: ", r, g, b, a)
+
+    -- Ensure that ColorPickerFrame is valid
+    if not ColorPickerFrame then
+        print("Error: ColorPickerFrame is not available.")
+        return
+    end
+
+    -- Manually set the RGB values using older methods
+    ColorPickerFrame.r, ColorPickerFrame.g, ColorPickerFrame.b = r, g, b
+    ColorPickerFrame.hasOpacity = (a ~= nil)
+    ColorPickerFrame.opacity = a or 1  -- Set to 1 if alpha is missing
+    ColorPickerFrame.previousValues = {r, g, b, a}
+
+    -- Set the callback functions
+    ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = 
+        changedCallback, changedCallback, changedCallback
+
+    -- Hide and show the color picker to trigger the OnShow handler
+    ColorPickerFrame:Hide()
+    ColorPickerFrame:Show()
+end
+
+-- Function to handle the color changes and save the new glow color
+local function myColorCallback(restore)
+    local newR, newG, newB, newA
+
+    if restore then
+        -- The user canceled the selection, restore the previous values
+        newR, newG, newB, newA = unpack(restore)
+    else
+        -- The user selected a new color, get the new values
+        newR, newG, newB = ColorPickerFrame.r, ColorPickerFrame.g, ColorPickerFrame.b
+
+        -- Check if OpacitySliderFrame is available and retrieve its value
+        if ColorPickerFrame.hasOpacity then
+            newA = OpacitySliderFrame and OpacitySliderFrame:GetValue() or 1
+        else
+            newA = 1  -- If opacity is not available, default to fully opaque
+        end
+    end
+
+    -- Save the selected color in the saved variables
+    addonTable.savedVariables.glowColor = {newR, newG, newB, newA}
+
+    -- Debug print to check saved values
+    print("Saved glow color to:", newR, newG, newB, newA)
+end
+
 -- Create the options panel function (but don't add it yet)
 local function CreateOptionsPanel()
     -- Create options panel
@@ -170,21 +225,17 @@ local function CreateOptionsPanel()
         ToastScaleSliderText:SetText("Size of Toast (" .. roundedValue .. ")")
     end)
 
-    -- Glow Color picker
+    -- Glow Color picker button in the options panel
     local glowColorButton = CreateFrame("Button", nil, optionsPanel, "UIPanelButtonTemplate")
     glowColorButton:SetPoint("TOPLEFT", scaleSlider, "BOTTOMLEFT", 0, -40)
     glowColorButton:SetSize(140, 22)
     glowColorButton:SetText("Choose Glow Color")
     glowColorButton:SetScript("OnClick", function()
-        ColorPickerFrame:SetColorRGB(unpack(addonTable.savedVariables.glowColor))
-        ColorPickerFrame.hasOpacity = true
-        ColorPickerFrame.opacity = addonTable.savedVariables.glowColor[4]
-        ColorPickerFrame.func = function()
-            local r, g, b = ColorPickerFrame:GetColorRGB()
-            local a = OpacitySliderFrame:GetValue()
-            addonTable.savedVariables.glowColor = {r, g, b, a}
-        end
-        ColorPickerFrame:Show()
+        -- Get the current glow color from the saved variables
+        local r, g, b, a = unpack(addonTable.savedVariables.glowColor)
+
+        -- Show the color picker and pass the current color and the callback
+        ShowColorPicker(r, g, b, a, myColorCallback)
     end)
 
     -- Move Toast Popup checkbox
@@ -214,11 +265,12 @@ local function CreateOptionsPanel()
         addonTable.savedVariables.scale = 1.0
         addonTable.savedVariables.glowColor = {1, 0.84, 0, 1}
         addonTable.savedVariables.toastPosition = {x = 0, y = -100}
+    
         -- Update sliders, color pickers, and checkbox accordingly
-        scaleSlider:SetValue(addonTable.savedVariables.scale)
-        ToastScaleSliderText:SetText("Size of Toast (" .. addonTable.savedVariables.scale .. ")")
+        scaleSlider:SetValue(Round(addonTable.savedVariables.scale, 1))  -- Use the rounded value
+        ToastScaleSliderText:SetText("Size of Toast (" .. Round(addonTable.savedVariables.scale, 1) .. ")")
         moveToastCheckbox:SetChecked(false)
-    end
+    end    
 
     -- Register the panel with the new settings API
     local category = Settings.RegisterCanvasLayoutCategory(optionsPanel, "Emote Popup")
