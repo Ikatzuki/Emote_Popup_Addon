@@ -216,14 +216,14 @@ local function CreateOptionsPanel()
     scaleSlider:SetValueStep(0.1)
     scaleSlider:SetValue(Round(addonTable.savedVariables.scale, 1))
     scaleSlider:SetObeyStepOnDrag(true)
-    ToastScaleSliderText:SetText("Size of Toast (" .. Round(addonTable.savedVariables.scale, 1) .. ")")
+    ToastScaleSliderText:SetText("Size of Popup (" .. Round(addonTable.savedVariables.scale, 1) .. ")")
     ToastScaleSliderLow:SetText("0.5")
     ToastScaleSliderHigh:SetText("2.0")
 
     scaleSlider:SetScript("OnValueChanged", function(self, value)
         local roundedValue = Round(value, 1)
         addonTable.savedVariables.scale = roundedValue
-        ToastScaleSliderText:SetText("Size of Toast (" .. roundedValue .. ")")
+        ToastScaleSliderText:SetText("Size of Popup (" .. roundedValue .. ")")
     end)
 
     local glowColorButton = CreateFrame("Button", nil, optionsPanel, "UIPanelButtonTemplate")
@@ -237,7 +237,7 @@ local function CreateOptionsPanel()
 
     local moveToastCheckbox = CreateFrame("CheckButton", nil, optionsPanel, "InterfaceOptionsCheckButtonTemplate")
     moveToastCheckbox:SetPoint("TOPLEFT", glowColorButton, "BOTTOMLEFT", 0, -40)
-    moveToastCheckbox.Text:SetText("Move Toast Popup")
+    moveToastCheckbox.Text:SetText("Move Popup Position")
     moveToastCheckbox:SetChecked(false)
 
     moveToastCheckbox:SetScript("OnClick", function(self)
@@ -289,12 +289,12 @@ local function CreateOptionsPanel()
     -- Create a label for the fadeout slider above the slider
     local fadeoutSliderText = optionsPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     fadeoutSliderText:SetPoint("BOTTOMLEFT", fadeoutSlider, "TOPLEFT", 0, 5)
-    fadeoutSliderText:SetText("Toast Fadeout Duration (" .. math.floor(addonTable.savedVariables.toastFadeoutDuration) .. " sec)")
+    fadeoutSliderText:SetText("Popup Fadeout Duration (" .. math.floor(addonTable.savedVariables.toastFadeoutDuration) .. " sec)")
 
     -- Update fadeout text and saved value when slider value changes, rounding to whole number
     fadeoutSlider:SetScript("OnValueChanged", function(self, value)
         addonTable.savedVariables.toastFadeoutDuration = math.floor(value)  -- Round to nearest integer
-        fadeoutSliderText:SetText("Toast Fadeout Duration (" .. math.floor(value) .. " sec)")
+        fadeoutSliderText:SetText("Popup Fadeout Duration (" .. math.floor(value) .. " sec)")
     end)
 
     optionsPanel.okay = function() end
@@ -307,7 +307,7 @@ local function CreateOptionsPanel()
     
         -- Update the sliders and texts with the default values
         scaleSlider:SetValue(Round(addonTable.savedVariables.scale, 1))
-        ToastScaleSliderText:SetText("Size of Toast (" .. Round(addonTable.savedVariables.scale, 1) .. ")")
+        ToastScaleSliderText:SetText("Size of Popup (" .. Round(addonTable.savedVariables.scale, 1) .. ")")
         
         durationSlider:SetValue(addonTable.savedVariables.toastDuration)
         durationSliderText:SetText("Popup Duration (" .. addonTable.savedVariables.toastDuration .. " sec)")
