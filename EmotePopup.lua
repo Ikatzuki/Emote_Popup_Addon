@@ -101,7 +101,7 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     if isTargetedAtPlayer then
         local glow = toast:CreateTexture(nil, "BACKGROUND", nil, -1)
         glow:SetPoint("CENTER", toast, "CENTER")
-        glow:SetSize(370 * addonTable.savedVariables.scale, 150 * addonTable.savedVariables.scale)
+        glow:SetSize(350 * addonTable.savedVariables.scale, 130 * addonTable.savedVariables.scale)
         glow:SetTexture("Interface\\GLUES\\MODELS\\UI_DRAENEI\\GenericGlow64")
         glow:SetBlendMode("ADD")
 
@@ -116,14 +116,15 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     -- Adjust all active toasts to move older ones down
     AdjustActiveToasts()
 
-    -- Fade out after 5 seconds if not in movable mode
+    -- If the toast is not movable, make it fade out and disappear after 5 seconds
     if not isMovable then
         C_Timer.After(3, function()
+            -- Fade out the toast over 2 seconds
             UIFrameFadeOut(toast, 2, 1, 0)
             C_Timer.After(2, function()
                 toast:Hide()
 
-                -- Remove toast from activeToasts when it fades out
+                -- Remove the toast from activeToasts once it fades out
                 for i, activeToast in ipairs(activeToasts) do
                     if activeToast == toast then
                         table.remove(activeToasts, i)
@@ -131,12 +132,16 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
                     end
                 end
 
-                -- Re-adjust the positions after removing the toast
+                -- Adjust remaining toasts after one is removed
                 AdjustActiveToasts()
             end)
         end)
     end
+
+    -- Return the toast object so we can track it if it's a temporary movable toast
+    return toast
 end
+
 
 -- Function to round numbers to a specified number of decimal places
  local function Round(num, numDecimalPlaces)
@@ -243,13 +248,18 @@ local function CreateOptionsPanel()
     moveToastCheckbox:SetPoint("TOPLEFT", glowColorButton, "BOTTOMLEFT", 0, -40)
     moveToastCheckbox.Text:SetText("Move Toast Popup")
     moveToastCheckbox:SetChecked(false)
+
     moveToastCheckbox:SetScript("OnClick", function(self)
         if self:GetChecked() then
-            ShowToast("Move Me!", false, true)  -- Show a toast for positioning
+            -- Show the "Move Me!" toast only if it's not already shown
+            if not addonTable.tempToast or not addonTable.tempToast:IsShown() then
+                addonTable.tempToast = ShowToast("Move Me!", false, true)  -- Show a toast for positioning
+            end
         else
-            -- Hide temporary move toast
+            -- Hide and release the "Move Me!" toast if it exists
             if addonTable.tempToast then
                 addonTable.tempToast:Hide()
+                addonTable.tempToast = nil  -- Remove reference to the toast to prevent further interaction
             end
         end
     end)
