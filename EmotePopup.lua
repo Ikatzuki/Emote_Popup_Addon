@@ -135,6 +135,12 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     end
 end
 
+-- Function to round numbers to a specified number of decimal places
+ local function Round(num, numDecimalPlaces)
+    local mult = 10^(numDecimalPlaces or 0)
+    return math.floor(num * mult + 0.5) / mult
+end
+
 -- Create the options panel function (but don't add it yet)
 local function CreateOptionsPanel()
     -- Create options panel
@@ -151,14 +157,17 @@ local function CreateOptionsPanel()
     scaleSlider:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -40)
     scaleSlider:SetMinMaxValues(0.5, 2)
     scaleSlider:SetValueStep(0.1)
-    scaleSlider:SetValue(addonTable.savedVariables.scale)
+    scaleSlider:SetValue(Round(addonTable.savedVariables.scale, 1))  -- Round to 1 decimal place
     scaleSlider:SetObeyStepOnDrag(true)
-    ToastScaleSliderText:SetText("Size of Toast (" .. addonTable.savedVariables.scale .. ")")
+    ToastScaleSliderText:SetText("Size of Toast (" .. Round(addonTable.savedVariables.scale, 1) .. ")")
     ToastScaleSliderLow:SetText("0.5")
     ToastScaleSliderHigh:SetText("2.0")
+
+    -- When the slider value changes, round the scale value and save it
     scaleSlider:SetScript("OnValueChanged", function(self, value)
-        addonTable.savedVariables.scale = value
-        ToastScaleSliderText:SetText("Size of Toast (" .. string.format("%.1f", value) .. ")")
+        local roundedValue = Round(value, 1)  -- Round to 1 decimal place
+        addonTable.savedVariables.scale = roundedValue
+        ToastScaleSliderText:SetText("Size of Toast (" .. roundedValue .. ")")
     end)
 
     -- Glow Color picker
