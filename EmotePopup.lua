@@ -40,6 +40,22 @@ local function SavePosition(toast)
     print("Saved relative position to:", relativeX, relativeY)
 end
 
+-- Function to adjust the position of active toasts dynamically based on scale
+local function AdjustActiveToasts()
+    local yOffset = addonTable.savedVariables.toastPosition.y  -- Start from the last saved position
+    local baseToastHeight = 60  -- The base height of the toast before scaling
+    local scale = addonTable.savedVariables.scale  -- Get the user's scale setting
+    local spacing = baseToastHeight * scale * 1.2  -- Spacing is based on the toast height and scale
+
+    -- Iterate through each active toast and move it down by the calculated spacing
+    for _, toast in ipairs(activeToasts) do
+        toast:ClearAllPoints()
+        toast:SetPoint("CENTER", UIParent, "CENTER", addonTable.savedVariables.toastPosition.x, yOffset)
+        yOffset = yOffset - spacing  -- Move the next toast further down based on the scale-adjusted spacing
+    end
+end
+
+
 -- Function to create toast with optional drag functionality for positioning
 function ShowToast(message, isTargetedAtPlayer, isMovable)
     -- Default isMovable to false if not provided
@@ -49,17 +65,12 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     EnsureValidPosition()
 
     -- Get the saved relative position and convert it back to screen position
-    local screenWidth, screenHeight = GetScreenWidth(), GetScreenHeight()
     local xPos = addonTable.savedVariables.toastPosition.x
     local yPos = addonTable.savedVariables.toastPosition.y
 
-    -- Debug print to verify position before setting the toast
-    print("Setting toast position relative to center:", xPos, yPos)
-
     -- Create the toast frame
     local toast = CreateFrame("Frame", nil, UIParent)
-    addonTable.tempToast = toast
-    toast:SetPoint("CENTER", UIParent, "CENTER", xPos, yPos)  -- Relative to center
+    toast:SetPoint("CENTER", UIParent, "CENTER", xPos, yPos)  -- Start at the saved position
     toast:SetSize(300 * addonTable.savedVariables.scale, 80 * addonTable.savedVariables.scale)
 
     -- Enable dragging functionality
@@ -96,11 +107,30 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
         glow:SetVertexColor(unpack(addonTable.savedVariables.glowColor))
     end
 
+    -- Insert the new toast at the top of the active toasts table
+    table.insert(activeToasts, 1, toast)
+
+    -- Adjust all active toasts to move older ones down
+    AdjustActiveToasts()
+
     -- Fade out after 5 seconds if not in movable mode
     if not isMovable then
         C_Timer.After(3, function()
             UIFrameFadeOut(toast, 2, 1, 0)
-            C_Timer.After(2, function() toast:Hide() end)
+            C_Timer.After(2, function()
+                toast:Hide()
+
+                -- Remove toast from activeToasts when it fades out
+                for i, activeToast in ipairs(activeToasts) do
+                    if activeToast == toast then
+                        table.remove(activeToasts, i)
+                        break
+                    end
+                end
+
+                -- Re-adjust the positions after removing the toast
+                AdjustActiveToasts()
+            end)
         end)
     end
 end
