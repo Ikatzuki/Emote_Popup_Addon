@@ -8,30 +8,36 @@ local addonName, addonTable = ...
 EmotePopupSavedVars = EmotePopupSavedVars or {
     scale = 1.0,  -- Default scale
     glowColor = {1, 0.84, 0, 1},  -- Default glow color (gold)
-    toastPosition = {x = 0, y = -100},  -- Default toast position
+    toastPosition = {x = 0, y = -100},  -- Default toast position (relative to center)
 }
 
 -- Alias the saved variables for easy use
 addonTable.savedVariables = EmotePopupSavedVars
 
--- Debugging function to ensure position values are valid
-local function ClampPosition(x, y)
-    local screenWidth, screenHeight = GetScreenWidth(), GetScreenHeight()
-    x = math.min(math.max(x, 0), screenWidth - 300)  -- Clamp within screen width minus the toast width
-    y = math.min(math.max(y, 0), screenHeight - 80)  -- Clamp within screen height minus the toast height
-    return x, y
+-- Ensure that the position is valid, and if not, set it to default
+local function EnsureValidPosition()
+    -- If there's no saved position, assign the default
+    if not addonTable.savedVariables.toastPosition or not addonTable.savedVariables.toastPosition.x or not addonTable.savedVariables.toastPosition.y then
+        addonTable.savedVariables.toastPosition = { x = 0, y = -100 }
+    end
 end
 
 -- Save position after dragging
 local function SavePosition(toast)
-    local x = toast:GetLeft()
-    local y = toast:GetTop()
+    -- Get the current position relative to the center of the screen
+    local screenWidth, screenHeight = GetScreenWidth(), GetScreenHeight()
+    local x, y = toast:GetCenter()
+
+    -- Convert the absolute position to relative to center
+    local relativeX = x - screenWidth / 2
+    local relativeY = y - screenHeight / 2
+
+    -- Save relative position
+    addonTable.savedVariables.toastPosition.x = relativeX
+    addonTable.savedVariables.toastPosition.y = relativeY
 
     -- Debug print the values being saved
-    print("Saving position:", x, y)
-
-    -- Save clamped position
-    addonTable.savedVariables.toastPosition.x, addonTable.savedVariables.toastPosition.y = ClampPosition(x, y)
+    print("Saved relative position to:", relativeX, relativeY)
 end
 
 -- Function to create toast with optional drag functionality for positioning
@@ -39,16 +45,21 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     -- Default isMovable to false if not provided
     isMovable = isMovable or false
 
-    -- Get the clamped position to avoid off-screen placement
-    local xPos, yPos = ClampPosition(addonTable.savedVariables.toastPosition.x, addonTable.savedVariables.toastPosition.y)
+    -- Make sure we have a valid position
+    EnsureValidPosition()
+
+    -- Get the saved relative position and convert it back to screen position
+    local screenWidth, screenHeight = GetScreenWidth(), GetScreenHeight()
+    local xPos = addonTable.savedVariables.toastPosition.x
+    local yPos = addonTable.savedVariables.toastPosition.y
 
     -- Debug print to verify position before setting the toast
-    print("Setting toast position to:", xPos, yPos)
+    print("Setting toast position relative to center:", xPos, yPos)
 
     -- Create the toast frame
     local toast = CreateFrame("Frame", nil, UIParent)
     addonTable.tempToast = toast
-    toast:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", xPos, yPos)
+    toast:SetPoint("CENTER", UIParent, "CENTER", xPos, yPos)  -- Relative to center
     toast:SetSize(300 * addonTable.savedVariables.scale, 80 * addonTable.savedVariables.scale)
 
     -- Enable dragging functionality
@@ -59,7 +70,7 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
         toast:SetScript("OnDragStart", function() toast:StartMoving() end)
         toast:SetScript("OnDragStop", function()
             toast:StopMovingOrSizing()
-            SavePosition(toast)  -- Call SavePosition to store the position
+            SavePosition(toast)  -- Call SavePosition to store the relative position
         end)
     end
 
@@ -79,7 +90,7 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     if isTargetedAtPlayer then
         local glow = toast:CreateTexture(nil, "BACKGROUND", nil, -1)
         glow:SetPoint("CENTER", toast, "CENTER")
-        glow:SetSize(300 * addonTable.savedVariables.scale, 200 * addonTable.savedVariables.scale)
+        glow:SetSize(350 * addonTable.savedVariables.scale, 130 * addonTable.savedVariables.scale)
         glow:SetTexture("Interface\\GLUES\\MODELS\\UI_DRAENEI\\GenericGlow64")
         glow:SetBlendMode("ADD")
         glow:SetVertexColor(unpack(addonTable.savedVariables.glowColor))
@@ -92,14 +103,6 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
             C_Timer.After(2, function() toast:Hide() end)
         end)
     end
-end
-
--- Save position after dragging
-local function SavePosition(frame)
-    local x, y = frame:GetCenter()
-    local scale = frame:GetEffectiveScale()
-    addonTable.savedVariables.toastPosition.x = x * scale - GetScreenWidth() / 2
-    addonTable.savedVariables.toastPosition.y = y * scale - GetScreenHeight() / 2
 end
 
 -- Create the options panel function (but don't add it yet)
@@ -193,6 +196,8 @@ frame:RegisterEvent("CHAT_MSG_TEXT_EMOTE")
 local function OnEvent(self, event, ...)
     if event == "ADDON_LOADED" and ... == addonName then
         -- Set up saved variables here if needed
+        -- Make sure saved variables are restored
+        addonTable.savedVariables = EmotePopupSavedVars
     elseif event == "PLAYER_LOGIN" then
         -- Now the Blizzard UI is fully loaded, and we can safely add the options panel
         CreateOptionsPanel()
@@ -218,6 +223,5 @@ local function OnEvent(self, event, ...)
         end
     end
 end
-
 
 frame:SetScript("OnEvent", OnEvent)
