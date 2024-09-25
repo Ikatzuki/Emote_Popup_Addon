@@ -71,25 +71,7 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     -- Create the toast frame
     local toast = CreateFrame("Frame", nil, UIParent)
     toast:SetPoint("CENTER", UIParent, "CENTER", xPos, yPos)  -- Start at the saved position
-    toast:SetSize(300 * addonTable.savedVariables.scale, 80 * addonTable.savedVariables.scale)
-
-    -- Enable dragging functionality
-    toast:SetMovable(isMovable)
-    toast:EnableMouse(isMovable)
-    if isMovable then
-        toast:RegisterForDrag("LeftButton")
-        toast:SetScript("OnDragStart", function() toast:StartMoving() end)
-        toast:SetScript("OnDragStop", function()
-            toast:StopMovingOrSizing()
-            SavePosition(toast)  -- Call SavePosition to store the relative position
-        end)
-    end
-
-    -- Set up the toast content (background, text, glow)
-    -- Background
-    local bg = toast:CreateTexture(nil, "BACKGROUND")
-    bg:SetTexture("Interface\\AddOns\\EmotePopup\\Images\\Background.png")
-    bg:SetAllPoints()
+    toast:SetHeight(80 * addonTable.savedVariables.scale)  -- Fixed height
 
     -- Text
     local text = toast:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -97,11 +79,21 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     text:SetText(message)
     text:SetTextColor(1, 1, 1)
 
+    -- Dynamically calculate the width based on the length of the text
+    local textWidth = text:GetStringWidth() + 40  -- Add some padding around the text
+    toast:SetWidth(textWidth * addonTable.savedVariables.scale)
+
+    -- Set up the toast content (background, text, glow)
+    -- Background
+    local bg = toast:CreateTexture(nil, "BACKGROUND")
+    bg:SetTexture("Interface\\AddOns\\EmotePopup\\Images\\Background.png")
+    bg:SetAllPoints()
+
     -- Glow effect if targeted
     if isTargetedAtPlayer then
         local glow = toast:CreateTexture(nil, "BACKGROUND", nil, -1)
         glow:SetPoint("CENTER", toast, "CENTER")
-        glow:SetSize(350 * addonTable.savedVariables.scale, 130 * addonTable.savedVariables.scale)
+        glow:SetSize(textWidth * 1.2 * addonTable.savedVariables.scale, 130 * addonTable.savedVariables.scale)
         glow:SetTexture("Interface\\GLUES\\MODELS\\UI_DRAENEI\\GenericGlow64")
         glow:SetBlendMode("ADD")
 
@@ -141,7 +133,6 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     -- Return the toast object so we can track it if it's a temporary movable toast
     return toast
 end
-
 
 -- Function to round numbers to a specified number of decimal places
  local function Round(num, numDecimalPlaces)
