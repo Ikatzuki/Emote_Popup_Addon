@@ -64,6 +64,9 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     -- Make sure we have a valid position
     EnsureValidPosition()
 
+    -- Strip realm name from player names in the message (format: Player-Realm)
+    message = message:gsub("(%a+)%-(%a+)", "%1")
+
     -- Get the saved relative position and convert it back to screen position
     local xPos = addonTable.savedVariables.toastPosition.x
     local yPos = addonTable.savedVariables.toastPosition.y
