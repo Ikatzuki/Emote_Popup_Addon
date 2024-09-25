@@ -101,7 +101,7 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     if isTargetedAtPlayer then
         local glow = toast:CreateTexture(nil, "BACKGROUND", nil, -1)
         glow:SetPoint("CENTER", toast, "CENTER")
-        glow:SetSize(350 * addonTable.savedVariables.scale, 130 * addonTable.savedVariables.scale)
+        glow:SetSize(370 * addonTable.savedVariables.scale, 150 * addonTable.savedVariables.scale)
         glow:SetTexture("Interface\\GLUES\\MODELS\\UI_DRAENEI\\GenericGlow64")
         glow:SetBlendMode("ADD")
 
@@ -178,8 +178,8 @@ local function myColorCallback(restore)
         -- The user canceled the selection, restore the previous values
         newR, newG, newB, newA = unpack(restore)
     else
-        -- The user selected a new color, get the new values
-        newR, newG, newB = ColorPickerFrame.r, ColorPickerFrame.g, ColorPickerFrame.b
+        -- The user selected a new color, get the new values from ColorPickerFrame
+        newR, newG, newB = ColorPickerFrame:GetColorRGB()
 
         -- Check if OpacitySliderFrame is available and retrieve its value
         if ColorPickerFrame.hasOpacity then
@@ -228,8 +228,8 @@ local function CreateOptionsPanel()
     -- Glow Color picker button in the options panel
     local glowColorButton = CreateFrame("Button", nil, optionsPanel, "UIPanelButtonTemplate")
     glowColorButton:SetPoint("TOPLEFT", scaleSlider, "BOTTOMLEFT", 0, -40)
-    glowColorButton:SetSize(140, 22)
-    glowColorButton:SetText("Choose Glow Color")
+    glowColorButton:SetSize(150, 22)
+    glowColorButton:SetText("Choose Mention Color")
     glowColorButton:SetScript("OnClick", function()
         -- Get the current glow color from the saved variables
         local r, g, b, a = unpack(addonTable.savedVariables.glowColor)
