@@ -53,35 +53,63 @@ function ShowToast(message, isTargetedAtPlayer, playerName, playerGUID, isMovabl
     isMovable = isMovable or false
     EnsureValidPosition()
 
-    local playerOnlyName = playerName:match("^[^%-]+")
-    local _, class = GetPlayerInfoByGUID(playerGUID)
-    local classColor = RAID_CLASS_COLORS[class] or {r = 1, g = 1, b = 1}
+    -- Strip realm name from player names in the message (format: Player-Realm)
+    local playerOnlyName = playerName and playerName:match("^[^%-]+") or ""
+
+    -- Get the player's class to color their name
+    local classColor = {r = 1, g = 1, b = 1}  -- Default to white if class is not found
+    if playerGUID then
+        local _, class = GetPlayerInfoByGUID(playerGUID)
+        if class then
+            classColor = RAID_CLASS_COLORS[class] or classColor
+        end
+    end
+
+    -- Get the saved relative position and convert it back to screen position
     local xPos = addonTable.savedVariables.toastPosition.x
     local yPos = addonTable.savedVariables.toastPosition.y
 
+    -- Create the toast frame
     local toast = CreateFrame("Frame", nil, UIParent)
     toast:SetPoint("CENTER", UIParent, "CENTER", xPos, yPos)
     toast:SetHeight(80 * addonTable.savedVariables.scale)
 
+    -- Text (apply default emote color to the whole message)
     local text = toast:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     text:SetPoint("CENTER", toast, "CENTER")
 
-    local playerNameColor = string.format("|cff%02x%02x%02x%s|r", classColor.r * 255, classColor.g * 255, classColor.b * 255, playerOnlyName)
-    local finalMessage = message:gsub(playerName .. "%-?%w*", playerNameColor)
-    finalMessage = finalMessage:gsub("(%a+%-[%a]+)", function(fullName)
-        return fullName:match("^[^%-]+")
-    end)
+    -- Set emote text with class-colored player name
+    if playerName then
+        local playerNameColor = string.format("|cff%02x%02x%02x%s|r", classColor.r * 255, classColor.g * 255, classColor.b * 255, playerOnlyName)
 
-    text:SetText(finalMessage)
-    text:SetTextColor(255/255, 128/255, 64/255)
+        -- Replace the full player name (with or without the realm) in the message with the colored playerOnlyName
+        local finalMessage = message:gsub(playerName .. "%-?%w*", playerNameColor)
 
-    local textWidth = text:GetStringWidth() + 40
+        -- Now, additionally strip any remaining realm names from any other player references in the message
+        finalMessage = finalMessage:gsub("(%a+%-[%a]+)", function(fullName)
+            return fullName:match("^[^%-]+")
+        end)
+
+        -- Set the text with default emote color and the class-colored player name
+        text:SetText(finalMessage)
+    else
+        -- Fallback if playerName is nil (for "Move Me!" or other system messages)
+        text:SetText(message)
+    end
+
+    text:SetTextColor(255 / 255, 128 / 255, 64 / 255)  -- Default emote text color
+
+    -- Dynamically calculate the width based on the length of the text
+    local textWidth = text:GetStringWidth() + 40  -- Add some padding around the text
     toast:SetWidth(textWidth * addonTable.savedVariables.scale)
 
+    -- Set up the toast content (background, text, glow)
+    -- Background
     local bg = toast:CreateTexture(nil, "BACKGROUND")
     bg:SetTexture("Interface\\AddOns\\EmotePopup\\Images\\Background.png")
     bg:SetAllPoints()
 
+    -- Glow effect if targeted
     if isTargetedAtPlayer then
         local glow = toast:CreateTexture(nil, "BACKGROUND", nil, -1)
         glow:SetPoint("CENTER", toast, "CENTER")
@@ -89,13 +117,32 @@ function ShowToast(message, isTargetedAtPlayer, playerName, playerGUID, isMovabl
         glow:SetTexture("Interface\\GLUES\\MODELS\\UI_DRAENEI\\GenericGlow64")
         glow:SetBlendMode("ADD")
 
+        -- Use the saved glow color
         local r, g, b, a = unpack(addonTable.savedVariables.glowColor)
         glow:SetVertexColor(r, g, b, a)
     end
 
+    -- Make toast movable if isMovable is true
+    if isMovable then
+        toast:SetMovable(true)
+        toast:EnableMouse(true)
+        toast:RegisterForDrag("LeftButton")
+        toast:SetScript("OnDragStart", function(self)
+            self:StartMoving()
+        end)
+        toast:SetScript("OnDragStop", function(self)
+            self:StopMovingOrSizing()
+            SavePosition(self)  -- Call SavePosition to store the new position
+        end)
+    end
+
+    -- Insert the new toast at the top of the active toasts table
     table.insert(activeToasts, 1, toast)
+
+    -- Adjust all active toasts to move older ones down
     AdjustActiveToasts()
 
+    -- If not movable, fade out after a short delay
     if not isMovable then
         C_Timer.After(3, function()
             UIFrameFadeOut(toast, 2, 1, 0)
@@ -199,7 +246,7 @@ local function CreateOptionsPanel()
     moveToastCheckbox:SetScript("OnClick", function(self)
         if self:GetChecked() then
             if not addonTable.tempToast or not addonTable.tempToast:IsShown() then
-                addonTable.tempToast = ShowToast("Move Me!", false, true)
+                addonTable.tempToast = ShowToast("Move Me!", false, nil, nil, true)
             end
         else
             if addonTable.tempToast then
