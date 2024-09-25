@@ -8,7 +8,7 @@ local addonName, addonTable = ...
 EmotePopupSavedVars = EmotePopupSavedVars or {
     scale = 1.0,
     glowColor = {1, 0.84, 0, 1},
-    toastPosition = {x = 0, y = -100},
+    toastPosition = {x = 0, y = 600},
 }
 
 -- Alias the saved variables for easy use
@@ -31,7 +31,6 @@ local function SavePosition(toast)
     addonTable.savedVariables.toastPosition.x = relativeX
     addonTable.savedVariables.toastPosition.y = relativeY
 
-    print("Saved relative position to:", relativeX, relativeY)
 end
 
 -- Adjust the position of active toasts based on scale
@@ -170,10 +169,8 @@ end
 
 -- Display the color picker using older methods
 local function ShowColorPicker(r, g, b, a, changedCallback)
-    print("Opening Color Picker with values: ", r, g, b, a)
 
     if not ColorPickerFrame then
-        print("Error: ColorPickerFrame is not available.")
         return
     end
 
@@ -201,7 +198,6 @@ local function myColorCallback(restore)
     end
 
     addonTable.savedVariables.glowColor = {newR, newG, newB, newA}
-    print("Saved glow color to:", newR, newG, newB, newA)
 end
 
 -- Create the options panel
