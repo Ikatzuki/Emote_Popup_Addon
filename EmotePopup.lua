@@ -9,6 +9,7 @@ EmotePopupSavedVars = EmotePopupSavedVars or {
     scale = 1.0,
     glowColor = {1, 0.84, 0, 1},
     toastPosition = {x = 0, y = 600},
+    toastDuration = 3
 }
 
 -- Alias the saved variables for easy use
@@ -141,11 +142,11 @@ function ShowToast(message, isTargetedAtPlayer, playerName, playerGUID, isMovabl
     -- Adjust all active toasts to move older ones down
     AdjustActiveToasts()
 
-    -- If not movable, fade out after a short delay
+    -- If not movable, fade out after the customizable duration
     if not isMovable then
-        C_Timer.After(3, function()
-            UIFrameFadeOut(toast, 2, 1, 0)
-            C_Timer.After(2, function()
+        C_Timer.After(addonTable.savedVariables.toastDuration, function()  -- Use the customizable duration here
+            UIFrameFadeOut(toast, addonTable.savedVariables.toastFadeoutDuration, 1, 0)  -- Use customizable fadeout duration
+            C_Timer.After(addonTable.savedVariables.toastFadeoutDuration, function()  -- Use the fadeout duration here as well    
                 toast:Hide()
                 for i, activeToast in ipairs(activeToasts) do
                     if activeToast == toast then
@@ -252,16 +253,70 @@ local function CreateOptionsPanel()
         end
     end)
 
+    -- Duration slider for how long the toast stays on screen
+    local durationSlider = CreateFrame("Slider", "ToastDurationSlider", optionsPanel, "OptionsSliderTemplate")
+    -- Place it below the moveToastCheckbox or adjust as needed
+    durationSlider:SetPoint("TOPLEFT", moveToastCheckbox, "BOTTOMLEFT", 0, -60)
+    durationSlider:SetMinMaxValues(1, 10)  -- Allowing a duration range between 1 to 10 seconds
+    durationSlider:SetValueStep(1)
+
+    -- Use saved value or default to 3 if nil
+    addonTable.savedVariables.toastDuration = addonTable.savedVariables.toastDuration or 3
+    durationSlider:SetValue(addonTable.savedVariables.toastDuration)
+
+    -- Create a label for the duration slider above the slider
+    local durationSliderText = optionsPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    durationSliderText:SetPoint("BOTTOMLEFT", durationSlider, "TOPLEFT", 0, 5)
+    durationSliderText:SetText("Popup Duration (" .. math.floor(addonTable.savedVariables.toastDuration) .. " sec)")
+
+    -- Update duration text and saved value when slider value changes, rounding to whole number
+    durationSlider:SetScript("OnValueChanged", function(self, value)
+        addonTable.savedVariables.toastDuration = math.floor(value)
+        durationSliderText:SetText("Popup Duration (" .. math.floor(value) .. " sec)")
+    end)
+
+    -- Fadeout duration slider for how long the toast takes to fade out
+    local fadeoutSlider = CreateFrame("Slider", "ToastFadeoutSlider", optionsPanel, "OptionsSliderTemplate")
+    -- Position it below the durationSlider or adjust as needed
+    fadeoutSlider:SetPoint("TOPLEFT", durationSlider, "BOTTOMLEFT", 0, -60)
+    fadeoutSlider:SetMinMaxValues(1, 5)  -- Allowing fadeout duration between 1 to 5 seconds
+    fadeoutSlider:SetValueStep(1)
+
+    -- Use saved value or default to 2 if nil
+    addonTable.savedVariables.toastFadeoutDuration = addonTable.savedVariables.toastFadeoutDuration or 2
+    fadeoutSlider:SetValue(addonTable.savedVariables.toastFadeoutDuration)
+
+    -- Create a label for the fadeout slider above the slider
+    local fadeoutSliderText = optionsPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    fadeoutSliderText:SetPoint("BOTTOMLEFT", fadeoutSlider, "TOPLEFT", 0, 5)
+    fadeoutSliderText:SetText("Toast Fadeout Duration (" .. math.floor(addonTable.savedVariables.toastFadeoutDuration) .. " sec)")
+
+    -- Update fadeout text and saved value when slider value changes, rounding to whole number
+    fadeoutSlider:SetScript("OnValueChanged", function(self, value)
+        addonTable.savedVariables.toastFadeoutDuration = math.floor(value)  -- Round to nearest integer
+        fadeoutSliderText:SetText("Toast Fadeout Duration (" .. math.floor(value) .. " sec)")
+    end)
+
     optionsPanel.okay = function() end
     optionsPanel.default = function()
         addonTable.savedVariables.scale = 1.0
         addonTable.savedVariables.glowColor = {1, 0.84, 0, 1}
-        addonTable.savedVariables.toastPosition = {x = 0, y = -100}
-
+        addonTable.savedVariables.toastPosition = {x = 0, y = 600}
+        addonTable.savedVariables.toastDuration = 3
+        addonTable.savedVariables.toastFadeoutDuration = 2
+    
+        -- Update the sliders and texts with the default values
         scaleSlider:SetValue(Round(addonTable.savedVariables.scale, 1))
         ToastScaleSliderText:SetText("Size of Toast (" .. Round(addonTable.savedVariables.scale, 1) .. ")")
+        
+        durationSlider:SetValue(addonTable.savedVariables.toastDuration)
+        durationSliderText:SetText("Popup Duration (" .. addonTable.savedVariables.toastDuration .. " sec)")
+        
+        fadeoutSlider:SetValue(addonTable.savedVariables.toastFadeoutDuration)
+        fadeoutSliderText:SetText("Fadeout Duration (" .. addonTable.savedVariables.toastFadeoutDuration .. " sec)")
+    
         moveToastCheckbox:SetChecked(false)
-    end
+    end    
 
     local category = Settings.RegisterCanvasLayoutCategory(optionsPanel, "Emote Popup")
     Settings.RegisterAddOnCategory(category)
