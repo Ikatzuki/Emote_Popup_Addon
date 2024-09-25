@@ -55,9 +55,8 @@ local function AdjustActiveToasts()
     end
 end
 
-
 -- Function to create toast with optional drag functionality for positioning
-function ShowToast(message, isTargetedAtPlayer, isMovable)
+function ShowToast(message, isTargetedAtPlayer, playerName, playerGUID, isMovable)
     -- Default isMovable to false if not provided
     isMovable = isMovable or false
 
@@ -65,7 +64,11 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     EnsureValidPosition()
 
     -- Strip realm name from player names in the message (format: Player-Realm)
-    message = message:gsub("(%a+)%-(%a+)", "%1")
+    local playerOnlyName = playerName:match("([^%-]+)")  -- Get player name without the realm
+
+    -- Get the player's class to color their name
+    local _, class = GetPlayerInfoByGUID(playerGUID)
+    local classColor = RAID_CLASS_COLORS[class] or {r = 1, g = 1, b = 1}  -- Fallback to white if no class info
 
     -- Get the saved relative position and convert it back to screen position
     local xPos = addonTable.savedVariables.toastPosition.x
@@ -76,11 +79,17 @@ function ShowToast(message, isTargetedAtPlayer, isMovable)
     toast:SetPoint("CENTER", UIParent, "CENTER", xPos, yPos)  -- Start at the saved position
     toast:SetHeight(80 * addonTable.savedVariables.scale)  -- Fixed height
 
-    -- Text
+    -- Text (apply default emote color to the whole message)
     local text = toast:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     text:SetPoint("CENTER", toast, "CENTER")
-    text:SetText(message)
-    text:SetTextColor(1, 1, 1)
+    
+    -- Set emote text with class-colored player name
+    local playerNameColor = string.format("|cff%02x%02x%02x%s|r", classColor.r * 255, classColor.g * 255, classColor.b * 255, playerOnlyName)
+    local finalMessage = message:gsub(playerOnlyName, playerNameColor)
+    
+    -- Set text with default emote color and the player name color
+    text:SetText(finalMessage)
+    text:SetTextColor(255/255, 128/255, 64/255)  -- Default emote text color
 
     -- Dynamically calculate the width based on the length of the text
     local textWidth = text:GetStringWidth() + 40  -- Add some padding around the text
@@ -313,8 +322,8 @@ local function OnEvent(self, event, ...)
             local isTargetedAtPlayer = text:find("you") ~= nil
             print("test2 - isTargetedAtPlayer:", isTargetedAtPlayer)
 
-            -- Show the toast notification for the emote
-            ShowToast(text, isTargetedAtPlayer)
+            -- Show the toast notification for the emote and pass the playerName and GUID
+            ShowToast(text, isTargetedAtPlayer, playerName, senderGUID)
         end
     end
 end
