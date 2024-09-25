@@ -85,9 +85,14 @@ function ShowToast(message, isTargetedAtPlayer, playerName, playerGUID, isMovabl
 
     -- Set emote text with class-colored player name
     local playerNameColor = string.format("|cff%02x%02x%02x%s|r", classColor.r * 255, classColor.g * 255, classColor.b * 255, playerOnlyName)
-    
+
     -- Replace the full player name (with or without the realm) in the message with the colored playerOnlyName
     local finalMessage = message:gsub(playerName .. "%-?%w*", playerNameColor)  -- Replace both the player name and any realm name
+
+    -- Now, additionally strip any remaining realm names from any other player references in the message
+    finalMessage = finalMessage:gsub("(%a+%-[%a]+)", function(fullName)
+        return fullName:match("^[^%-]+")
+    end)
 
     -- Set the text with default emote color and the class-colored player name
     text:SetText(finalMessage)
